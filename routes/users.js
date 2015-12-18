@@ -1,19 +1,24 @@
 var express = require('express');
 var router = express.Router();
 var path = require('path');
+var SlackBot = require('slackbots');
 var client = require('../redisDB');
-var apiWrappers = require('../webhook-config.js');
-var bot = apiWrappers.bot;
+var token = require('../webhook-config.js');
+
+var bot = new SlackBot({
+	token: token,
+	name: 'tboogie'
+});
 
 
 
 router.get('/', function(req, res, next) {
+	res.send('Nothing Here');
 });
 
 router.post('/', function(req, res, next) {
 	var validUsers = bot.getUsers()._value.members;
 	var inDB = validUsers.map(function(user){
-		// return user.profile.email
 		return user.name;
 	}).indexOf(req.body.slackUsername);
 

@@ -4,6 +4,7 @@ var path = require('path');
 var request = require('request');
 var token = require('../webhook-config.js');
 var client = require('../redisDB');
+var num = 0;
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -11,7 +12,7 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/', function(req, res, next){
-
+    console.log("we received a request", num++);
     var tBoard = req.body.model.name;
     var card = req.body.action.data.card;
     var url = "https://trello.com/c/" + req.body.action.data.card.shortLink;
@@ -23,21 +24,28 @@ router.post('/', function(req, res, next){
             return text.indexOf("@") > -1;
         });
 
+        console.log("all recipients", recipientArr);
         if(recipientArr.length > 0){
             recipientArr.forEach(function(recepient){
-                client.get(recepient, function(err, reply){
+                var recip = recepient.substr(1);
+                client.get(recip, function(err, reply){
                     if(err) throw err;
                     slackName = reply;
                     var form = {
                         token: token,
-                        channel: slackName,
+                        channel: "@" + slackName,
                         text: "You were @mentioned by " + memberCreator + 
                         " on the " + card.name + " card on the " + tBoard + " board " + url
                     }
 
+
                     request.post({url: 'https://slack.com/api/chat.postMessage', form: form}, function(err, httpResponse, body){
-                        console.log(httpResponse);
+                        if(err) throw err;
+                        if(body.ok){
+                            res.status(200).send("Success");
+                        }
                     });
+                    console.log("we sent a message to slack");
                 });
             }); 
         }
@@ -51,13 +59,16 @@ router.post('/', function(req, res, next){
 
             var form = {
                 token: token,
-                channel: slackName,
+                channel: "@" + slackName,
                 text: "You were added to the " + card.name + " card on the " 
                 + tBoard + " board by " + memberCreator + " " + url
             }
 
             request.post({url: 'https://slack.com/api/chat.postMessage', form: form}, function(err, httpResponse, body){
-                console.log(httpResponse);
+                if(err) throw err;
+                if(body.ok){
+                    res.status(200).send("Success");
+                }
             });
         });
     }
